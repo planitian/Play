@@ -104,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
             is = new BufferedInputStream(socket.getInputStream());
             while (true) {
                 int len = readLen(is);
-                System.out.println(" 头部长度 len "+len);
                 if (len == -1) {
                     break;
                 }
@@ -123,7 +122,8 @@ public class MainActivity extends AppCompatActivity {
                         inData(temp);
                         break;
                 }
-                Log.d(TAG, "读取数据  " + anInt++);
+
+                System.out.println("第几次数据  " + anInt++);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -182,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
             initFormat();
         }
         format.setByteBuffer("csd-0", ByteBuffer.wrap(sps, 1, sps.length - 1));
+        System.out.println(" 设置了 sps>>>>>>>>>>>>>>>");
 //        copySps(sps);
     }
 
@@ -191,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
             initFormat();
         }
         format.setByteBuffer("csd-1", ByteBuffer.wrap(pps, 1, pps.length-1));
+        System.out.println(" 设置了 pps>>>>>>>>>>>>>>>");
 //        copyPps(pps);
     }
 
@@ -206,9 +208,9 @@ public class MainActivity extends AppCompatActivity {
             }
             count += len;
         }
-        for (int i = 0; i < lenByte.length; i++) {
+      /*  for (int i = 0; i < lenByte.length; i++) {
             System.out.println(lenByte[i]);
-        }
+        }*/
         return ByteUtils.ByteArrayToInt(lenByte);
     }
 
@@ -226,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
             }
             countByte += read;
         }
-        System.out.println(" 读取的数据 "+countByte);
+        System.out.println(" 读取的数据 "+countByte+" 数组类型"+temp[0]+" 发送数组 最后一位数据 "+temp[temp.length-1]);
         return temp;
     }
     //将得到的数据 传入 mediaCodec
