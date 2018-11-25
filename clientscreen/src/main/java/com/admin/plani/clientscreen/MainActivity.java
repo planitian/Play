@@ -48,7 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private ExecutorService executorService;
 
     private Socket socket = null;
-    private BufferedInputStream is = null;
+    private InputStream is = null;
+    private BufferedInputStream bufferedInputStream;
 
     private static final int INITMEDIACODEC = 1;
     private static final int INITSOCKET = 2;
@@ -56,12 +57,12 @@ public class MainActivity extends AppCompatActivity {
     private byte[] lenByte = new byte[4];
     private byte[] contentByte = new byte[1024];
     private ByteBuffer wrap = ByteBuffer.allocate(1024);
-    private int anInt = 0;
+    private int anInt = 1;
 
 
     private byte[] globalSps=null;
     private byte[] globalPps=null;
-
+    private long time = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,37 +94,58 @@ public class MainActivity extends AppCompatActivity {
            }
         try {
             Log.d(TAG, "  线程 " + Thread.currentThread().getName());
-            ServerSocket serverSocket = new ServerSocket(5553);
+            ServerSocket serverSocket = new ServerSocket(9937);
              socket = serverSocket.accept();
 //            socket = new Socket("192.168.0.104", 7776);
             socket.setTcpNoDelay(true);
+
 //            socket.setKeepAlive(true);
           /*  SocketAddress socketAddress = new InetSocketAddress("192.168.0.104", 7777);
             socket.connect(socketAddress,3000);*/
             Log.d(TAG, "  socket 运行成功");
-            is = new BufferedInputStream(socket.getInputStream());
+            is = socket.getInputStream();
+            bufferedInputStream = new BufferedInputStream(is);
+            Zprint.log(this.getClass()," 缓冲区大小 ",socket.getSendBufferSize());
+            Zprint.log(this.getClass()," 缓冲区大小 ",socket.getReceiveBufferSize());
+            boolean isExit = false;
+            int spsLen = readLen(bufferedInputStream);
+            byte[] sps = readBytes(spsLen, bufferedInputStream);
+            int ppsLen = readLen(bufferedInputStream);
+            byte[] pps = readBytes(ppsLen, bufferedInputStream);
+            setSpsAndPPs(sps, pps);
             while (true) {
-                int len = readLen(is);
+                int len = readLen(bufferedInputStream);
+                byte[] temp = readBytes(len, bufferedInputStream);
+                inData(temp);
+            /*    int len = readLen(is);
                 if (len == -1) {
                     break;
                 }
                 byte[] temp = readBytes(len, is);
                 if (temp == null) {
                     break;
-                }
-                switch (temp[0]) {
+                }*/
+            /*    switch (temp[0]) {
                     case 0:
-                        setSps(temp);
+                        byte[] sps = new byte[temp.length - 1];
+                        for (int i = 0; i <sps.length ; i++) {
+                            sps[i] = temp[1 + 1];
+                        }
+                        setSps(sps);
                         break;
                     case 1:
-                        setPps(temp);
+                        byte[] pps = new byte[temp.length - 1];
+                        for (int i = 0; i <pps.length ; i++) {
+                            pps[i] = temp[1 + 1];
+                        }
+                        setPps(pps);
                         break;
                     case 2:
                         inData(temp);
                         break;
-                }
+                }*/
 
-                System.out.println("第几次数据  " + anInt++);
+
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -144,6 +166,15 @@ public class MainActivity extends AppCompatActivity {
     private void copyPps(byte[] bytes) {
         globalPps = new byte[bytes.length];
         System.arraycopy(bytes, 0, globalPps, 0, bytes.length);
+    }
+
+    //设置sps  和pps
+    public void setSpsAndPPs(byte[] sps, byte[] pps) {
+        if (format == null) {
+            return;
+        }
+        format.setByteBuffer("csd-0", ByteBuffer.wrap(sps));
+        format.setByteBuffer("csd-1", ByteBuffer.wrap(pps));
     }
    //实例Format
     public void initFormat() {
@@ -182,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
             initFormat();
         }
         format.setByteBuffer("csd-0", ByteBuffer.wrap(sps, 1, sps.length - 1));
-        System.out.println(" 设置了 sps>>>>>>>>>>>>>>>");
+        System.out.println(" 设置了 sps>>>>>>>>>>>>>>>"+sps.toString());
 //        copySps(sps);
     }
 
@@ -192,12 +223,12 @@ public class MainActivity extends AppCompatActivity {
             initFormat();
         }
         format.setByteBuffer("csd-1", ByteBuffer.wrap(pps, 1, pps.length-1));
-        System.out.println(" 设置了 pps>>>>>>>>>>>>>>>");
+        System.out.println(" 设置了 pps>>>>>>>>>>>>>>>"+pps.toString());
 //        copyPps(pps);
     }
 
     //读取四个字节，得到传来的一帧图像 数组
-    public int readLen(BufferedInputStream inputStream) throws Exception {
+    public int readLen(InputStream inputStream) throws Exception {
         int len = 0;
         int count = 0;
         while (count < 4) {
@@ -208,31 +239,71 @@ public class MainActivity extends AppCompatActivity {
             }
             count += len;
         }
-      /*  for (int i = 0; i < lenByte.length; i++) {
-            System.out.println(lenByte[i]);
-        }*/
         return ByteUtils.ByteArrayToInt(lenByte);
     }
 
-    //读取一帧图像的数组
-    public byte[] readBytes(int len, BufferedInputStream inputStream) throws Exception {
-        //len 包含标识字节 1位
-        byte[] temp = new byte[len];
-
-        int read = 0;
-        int countByte = 0;
-        while (countByte < len) {
-            read = inputStream.read(temp, read, len - countByte);
-            if (read == -1) {
-                return null;
+/*    //读取四个字节，得到传来的一帧图像 数组
+    public int readLen(InputStream inputStream) throws Exception {
+        byte[] temp = new byte[4];
+        int len = 4;
+        for (int i = 0; i < len; i++) {
+            int date = inputStream.read();
+            if (date==-1){
+                throw new IllegalAccessException("流结束了");
             }
-            countByte += read;
+            temp[i] = (byte) date;
         }
-        System.out.println(" 读取的数据 "+countByte+" 数组类型"+temp[0]+" 发送数组 最后一位数据 "+temp[temp.length-1]);
+        return ByteUtils.ByteArrayToInt(temp);
+    }*/
+
+  /*  //读取一帧图像的数组
+    public byte[] readBytes(int len, InputStream inputStream) throws Exception {
+        byte[] temp = new byte[len];
+        Log.d(TAG, "第几次数据  " + anInt++);
+        if (len>10240){
+            for (int i = 0; i <len ; i++) {
+                temp[i] = (byte) inputStream.read();
+            }
+
+        }else {
+            int read = 0;
+            int countByte = 0;
+            int large = 0;
+            while (countByte < len) {
+                read = inputStream.read(temp, read, len - countByte);
+                if (read == -1) {
+                    Log.d(TAG, "readBytes: 读取到空的");
+                    return null;
+                }
+                countByte += read;
+                large++;
+                if (large>2){
+                    Log.d(TAG, "*************************************************************");
+                }
+                Log.d(TAG, "分段读取的字节数 "+read);
+            }
+            Log.d(TAG, "countByte "+countByte);
+        }
+
+        Log.d(TAG, " 头部长度 "+len+" 发送目标数组 中间一位数据 "+temp[temp.length/2]+" "+temp[temp.length-1]);
+        Log.d(TAG, "byte数组和 "+ByteSum.Sum(temp));
         return temp;
     }
+*/
+   //读取一帧图像的数组
+   public byte[] readBytes(int len, InputStream inputStream) throws Exception {
+       byte[] temp = new byte[len];
+       for (int i = 0; i <len ; i++) {
+           temp[i] = (byte) inputStream.read();
+       }
+       Log.d(TAG, "第几次数据  " + (anInt++)+" 头部长度 "+len+"中尾一位数据 "+temp[temp.length/2]+temp[temp.length-1]+"   byte数组和 "+ByteSum.Sum(temp));
+//       Log.d(TAG, " 头部长度 "+len+" 发送目标数组 中间一位数据 "+temp[temp.length/2]+" "+temp[temp.length-1]);
+//       Log.d(TAG, "byte数组和 "+ByteSum.Sum(temp));
+       return temp;
+   }
     //将得到的数据 传入 mediaCodec
     public void inData(byte[] data) {
+
         if (mediaCodec == null) {
             return;
         }
@@ -240,17 +311,17 @@ public class MainActivity extends AppCompatActivity {
         int inputBufferID = mediaCodec.dequeueInputBuffer(-1);
         if (inputBufferID >= 0) {
             ByteBuffer inputByte = mediaCodec.getInputBuffer(inputBufferID);
-//            System.out.println(">>>>>>>>>>>>>>>"+inputByte.capacity());
             inputByte.clear();
-            inputByte.put(data, 1, data.length - 1);
-            mediaCodec.queueInputBuffer(inputBufferID, 0, data.length, System.nanoTime() / 1000L, MediaCodec.BUFFER_FLAG_KEY_FRAME);
+            inputByte.put(data);
+            mediaCodec.queueInputBuffer(inputBufferID, 0, data.length, time++, MediaCodec.BUFFER_FLAG_KEY_FRAME);
         }
-
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
         int outputBufferID = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);
-        if (outputBufferID >= 0) {
+        if(outputBufferID>=0) {
             mediaCodec.releaseOutputBuffer(outputBufferID, true);
+//            Log.d(TAG, "》》》》解析");
         }
+//        Log.d(TAG, "》》》》解析");
     }
 
 
