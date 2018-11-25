@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Socket socket = null;
     private BufferedInputStream is = null;
+    private InputStream inputStream;
 
     private static final int INITMEDIACODEC = 1;
     private static final int INITSOCKET = 2;
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private byte[] lenByte = new byte[4];
     private byte[] contentByte = new byte[1024];
     private ByteBuffer wrap = ByteBuffer.allocate(1024);
-    private int anInt = 0;
+    private int anInt = 1;
 
 
     private byte[] globalSps=null;
@@ -101,7 +102,8 @@ public class MainActivity extends AppCompatActivity {
           /*  SocketAddress socketAddress = new InetSocketAddress("192.168.0.104", 7777);
             socket.connect(socketAddress,3000);*/
             Log.d(TAG, "  socket 运行成功");
-            is = new BufferedInputStream(socket.getInputStream());
+            inputStream = socket.getInputStream();
+            is = new BufferedInputStream(inputStream);
             while (true) {
                 int len = readLen(is);
                 if (len == -1) {
@@ -196,8 +198,16 @@ public class MainActivity extends AppCompatActivity {
 //        copyPps(pps);
     }
 
-    //读取四个字节，得到传来的一帧图像 数组
+ /*   //读取四个字节，得到传来的一帧图像 数组
     public int readLen(BufferedInputStream inputStream) throws Exception {
+        for (int i = 0; i < lenByte.length; i++) {
+            System.out.println(lenByte[i]);
+        }
+        return ByteUtils.ByteArrayToInt(lenByte);
+    }*/
+
+    //读取四个字节，得到传来的一帧图像 数组
+    public int readLen(InputStream inputStream) throws Exception {
         int len = 0;
         int count = 0;
         while (count < 4) {
@@ -208,9 +218,6 @@ public class MainActivity extends AppCompatActivity {
             }
             count += len;
         }
-      /*  for (int i = 0; i < lenByte.length; i++) {
-            System.out.println(lenByte[i]);
-        }*/
         return ByteUtils.ByteArrayToInt(lenByte);
     }
 
@@ -218,17 +225,10 @@ public class MainActivity extends AppCompatActivity {
     public byte[] readBytes(int len, BufferedInputStream inputStream) throws Exception {
         //len 包含标识字节 1位
         byte[] temp = new byte[len];
-
-        int read = 0;
-        int countByte = 0;
-        while (countByte < len) {
-            read = inputStream.read(temp, read, len - countByte);
-            if (read == -1) {
-                return null;
-            }
-            countByte += read;
+        for (int i = 0; i <len ; i++) {
+            temp[i] = (byte) inputStream.read();
         }
-        System.out.println(" 读取的数据 "+countByte+" 数组类型"+temp[0]+" 发送数组 最后一位数据 "+temp[temp.length-1]);
+        System.out.println(" 读取的数据 "+len+" 数组类型"+temp[0]+" 发送数组 最后一位数据 "+temp[temp.length-1]);
         return temp;
     }
     //将得到的数据 传入 mediaCodec
