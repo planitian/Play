@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
            }
         try {
             Log.d(TAG, "  线程 " + Thread.currentThread().getName());
-            ServerSocket serverSocket = new ServerSocket(9937);
+            ServerSocket serverSocket = new ServerSocket(5553);
              socket = serverSocket.accept();
 //            socket = new Socket("192.168.0.104", 7776);
             socket.setTcpNoDelay(true);
@@ -108,24 +108,24 @@ public class MainActivity extends AppCompatActivity {
             Zprint.log(this.getClass()," 缓冲区大小 ",socket.getSendBufferSize());
             Zprint.log(this.getClass()," 缓冲区大小 ",socket.getReceiveBufferSize());
             boolean isExit = false;
-            int spsLen = readLen(bufferedInputStream);
+            /*int spsLen = readLen(bufferedInputStream);
             byte[] sps = readBytes(spsLen, bufferedInputStream);
             int ppsLen = readLen(bufferedInputStream);
             byte[] pps = readBytes(ppsLen, bufferedInputStream);
-            setSpsAndPPs(sps, pps);
+            setSpsAndPPs(sps, pps);*/
             while (true) {
-                int len = readLen(bufferedInputStream);
+               /* int len = readLen(bufferedInputStream);
                 byte[] temp = readBytes(len, bufferedInputStream);
-                inData(temp);
-            /*    int len = readLen(is);
+                inData(temp);*/
+                int len = readLen(is);
                 if (len == -1) {
                     break;
                 }
                 byte[] temp = readBytes(len, is);
                 if (temp == null) {
                     break;
-                }*/
-            /*    switch (temp[0]) {
+                }
+                switch (temp[0]) {
                     case 0:
                         byte[] sps = new byte[temp.length - 1];
                         for (int i = 0; i <sps.length ; i++) {
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
                     case 2:
                         inData(temp);
                         break;
-                }*/
+                }
 
 
             }
@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
         int len = 0;
         int count = 0;
         while (count < 4) {
-            len = inputStream.read(lenByte, len, 4 - len);
+            len = inputStream.read(lenByte, count, 4 - count);
             if (len == -1) {
                 Log.d(TAG, "socket 关闭");
                 return -1;
@@ -256,21 +256,16 @@ public class MainActivity extends AppCompatActivity {
         return ByteUtils.ByteArrayToInt(temp);
     }*/
 
-  /*  //读取一帧图像的数组
+    //读取一帧图像的数组
     public byte[] readBytes(int len, InputStream inputStream) throws Exception {
         byte[] temp = new byte[len];
         Log.d(TAG, "第几次数据  " + anInt++);
-        if (len>10240){
-            for (int i = 0; i <len ; i++) {
-                temp[i] = (byte) inputStream.read();
-            }
 
-        }else {
             int read = 0;
             int countByte = 0;
             int large = 0;
             while (countByte < len) {
-                read = inputStream.read(temp, read, len - countByte);
+                read = inputStream.read(temp, countByte, len - countByte);
                 if (read == -1) {
                     Log.d(TAG, "readBytes: 读取到空的");
                     return null;
@@ -283,14 +278,12 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "分段读取的字节数 "+read);
             }
             Log.d(TAG, "countByte "+countByte);
-        }
 
         Log.d(TAG, " 头部长度 "+len+" 发送目标数组 中间一位数据 "+temp[temp.length/2]+" "+temp[temp.length-1]);
         Log.d(TAG, "byte数组和 "+ByteSum.Sum(temp));
         return temp;
     }
-*/
-   //读取一帧图像的数组
+ /*  //读取一帧图像的数组
    public byte[] readBytes(int len, InputStream inputStream) throws Exception {
        byte[] temp = new byte[len];
        for (int i = 0; i <len ; i++) {
@@ -300,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
 //       Log.d(TAG, " 头部长度 "+len+" 发送目标数组 中间一位数据 "+temp[temp.length/2]+" "+temp[temp.length-1]);
 //       Log.d(TAG, "byte数组和 "+ByteSum.Sum(temp));
        return temp;
-   }
+   }*/
     //将得到的数据 传入 mediaCodec
     public void inData(byte[] data) {
 
