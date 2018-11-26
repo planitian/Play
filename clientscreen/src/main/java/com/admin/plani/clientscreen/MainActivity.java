@@ -211,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
         int len = 0;
         int count = 0;
         while (count < 4) {
-            len = inputStream.read(lenByte, len, 4 - len);
+            len = inputStream.read(lenByte, count, 4 - count);
             if (len == -1) {
                 Log.d(TAG, "socket 关闭");
                 return -1;
@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
         return ByteUtils.ByteArrayToInt(lenByte);
     }
 
-    //读取一帧图像的数组
+ /*   //读取一帧图像的数组
     public byte[] readBytes(int len, BufferedInputStream inputStream) throws Exception {
         //len 包含标识字节 1位
         byte[] temp = new byte[len];
@@ -230,7 +230,34 @@ public class MainActivity extends AppCompatActivity {
         }
         System.out.println(" 读取的数据 "+len+" 数组类型"+temp[0]+" 发送数组 最后一位数据 "+temp[temp.length-1]);
         return temp;
+    }*/
+
+    //读取一帧图像的数组
+    public byte[] readBytes(int len, InputStream inputStream) throws Exception {
+        byte[] temp = new byte[len];
+        Log.d(TAG, "第几次数据  " + anInt++);
+            int read = 0;
+            int countByte = 0;
+            int large = 0;
+            while (countByte < len) {
+                read = inputStream.read(temp, countByte, len - countByte);
+                if (read == -1) {
+                    Log.d(TAG, "readBytes: 读取到空的");
+                    return null;
+                }
+                countByte += read;
+                large++;
+                if (large>2){
+                    Log.d(TAG, "*************************************************************");
+                }
+                Log.d(TAG, "分段读取的字节数 "+read);
+            }
+            Log.d(TAG, "countByte "+countByte);
+
+        Log.d(TAG, " 头部长度 "+len+" 发送目标数组 中间一位数据 "+temp[temp.length/2]+" "+temp[temp.length-1]);
+        return temp;
     }
+
     //将得到的数据 传入 mediaCodec
     public void inData(byte[] data) {
         if (mediaCodec == null) {
